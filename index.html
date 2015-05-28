@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Haks words</title>
+	<link rel="stylesheet" type="text/css" href="style.css">
+
+	<script>
+	
+	//ZMIENNE DLA SLOWKA I JEGO WLASCIWOSCI
+	var	id = -1;	//-1 NA START DO GENEROWANIA LOSOWEGO
+	var	plword;
+	var	enword;
+	var	plopis;
+	var	enopis;
+	var	enwymowa;
+	var	waga;
+	var	stanplnaen = -1;	//STARTOWA
+	var	stanennapl = -1;	//STARTOWA
+	var	plnaen = -1; 		//1 = TAK	0 = NIE
+	
+	//POKAZUJE WYMOWE
+	function showSpeaking(){
+		document.getElementById("speaking").innerHTML = enwymowa;
+	}
+
+	//POKAZUJE TLUMACZENIE W ZALEZNOSCI CZY NA PL CZY NA EN
+	function showTranslation(){
+		if(plnaen == 1){
+			document.getElementById("translate").innerHTML = enword;
+		}
+		else{
+			document.getElementById("translate").innerHTML = plword;
+		}
+	}
+	
+	//POKAZUJE WYSZUKIWARKE
+	function showsearcher(){
+		if(document.getElementById("searcha").style.display=="none")
+			document.getElementById("searcha").style.display="block";
+		else
+			document.getElementById("searcha").style.display="none";
+	}
+	
+	//POBIERA NOWE SLOWO
+	//OK TO ID SLOWKA KTORE BYLO PRZED CHWILA     -1 = START
+	function getNewWord(ok) { //1 = OK   0 = ZLE   -1 = STARTOWA
+	
+		//SKUPIENIE NA PRZYCISK OK
+		document.getElementById('goood').focus();
+		
+		//ZALADOWANIE STATYSTYK
+		loadStats();
+		
+		//USTAWIA POPRZEDNIE SLOWKO W CELU PRZYPOMNIENIA
+		ustawlast();
+		
+		//DODAJE LUB ODEJMUJE PUNKTY ZA ODPOWIEDZ
+		var newStan = 0;
+		if(plnaen == 1){
+			if(ok == 1){
+				newStan = parseInt(stanplnaen) + 1;
+				if(newStan >5)
+					newStan=5;
+			}
+			if(ok == 0){
+				newStan = parseInt(stanplnaen) - 1;
+				if(newStan <0)
+					newStan=0;
+			}
+		}
+		if(plnaen == 0){
+			if(ok == 1){
+				newStan = parseInt(stanennapl) + 1;
+				if(newStan >5)
+					newStan=5;
+			}
+			if(ok == 0){
+				newStan = parseInt(stanennapl) - 1;
+				if(newStan <0)
+					newStan=0;
+			}
+		}
+		
+		//BLOK WYSWIETLA DANE PRZEKAZYWANE JAKO POST DO ajax.php
+		//document.getElementById("sss").innerHTML="id="+id+"&ok="+ok+"&plnaen="+plnaen+"&stan="+newStan+checkedd();
+		
+		
+		//ZAPYTANIE AJAX DO ajax.php
+		if (window.XMLHttpRequest) {xmlhttp=new XMLHttpRequest();} else { xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");}
+		xmlhttp.onreadystatechange=function() {
+		
+			//JEZELI AJAX ODPOWIEDZIAL
+			if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+			
+				//PODZIELENIE DANYCH PRZEZ SEPERATOR NA TABLICE
+				var pobrane = xmlhttp.responseText.split("@#$%&");
+				id = pobrane[0];
+				plword = pobrane[1];
+				enword = pobrane[2];
+				plopis = pobrane[3];
+				enopis = pobrane[4];
+				enwymowa = pobrane[5];
+				waga = pobrane[6];
+				stanplnaen = pobrane[7];
+				stanennapl = pobrane[8];
+				plnaen = pobrane[9];
+				
+				//USTAWIA GRAFICZNIE PRZYCISKI SLOWKA OPISY
+				ustawprzyciski();
+				
+				//BLOK WYSWIETLA CALA ODPOWIEDZ AJAXA
+				//document.getElementById("sss2").innerHTML=xmlhttp.responseText;
+			}
+		}
+		
+		//WYWOLANIE ZAPYTANIA AJAX Z PARAMETRAMI POST
+		xmlhttp.open("POST","ajax.php",true);
+		xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+		xmlhttp.send("id="+id+"&ok="+ok+"&plnaen="+plnaen+"&stan="+newStan+checkedd());
+	}
+	
+	
+	
+	//USTAWIA GRAFICZNIE PRZYCISKI OPISY ITP PO POBRANIU SLOWA
+	function ustawprzyciski(){
+	
+		//JEZELI ISTNIEJE WYMOWA SLOWKA TO POKAZUJE BLOK Z NIA
+		if(enwymowa != " " && enwymowa != "" && plnaen == 1){
+			document.getElementById("speaking").innerHTML='<input type="submit" class="wymowa" value="Pokaż wymowę" onclick="showSpeaking()"/>';
+			document.getElementById("speaking").style.display="block";
+		}
+		//JEZELI NIE UKRYWA BLOK
+		else{
+			document.getElementById("speaking").style.display="none";
+		}
+		
+		//USTAWIA WAGE SLOWA, PROGRESSBARY I PRZYCISK TLUMACZENIA
+		document.getElementById('spwaga').innerHTML="waga: "+waga;
+		document.getElementById('pbplnaen').style.width=getProgressBarWidth(stanplnaen)+"%";
+		document.getElementById('pbennapl').style.width=getProgressBarWidth(stanennapl)+"%";
+		document.getElementById("translate").innerHTML='<input type="submit" class="tlumaczenie" value="Pokaż tłumaczenie" onclick="showTranslation()"/>';
+		
+		//W ZALEZNOSCI CZY ZA PL NA EN CZY ODWROTNIE
+		if(plnaen == 1){
+			//USTAWIA SLOWKO W ODPOWIEDNIM JEZYKU
+			document.getElementById("word").innerHTML=plword;
+			//JEZELI ISTNIEJE OPIS SLOWKA TO GO USTAWIA
+			if(plopis != " " && plopis != ""){
+				document.getElementById("description").innerHTML=plopis;
+				document.getElementById("description").style.display="block";
+			}
+			//JEZELI NIE CHOWA BLOK
+			else{
+				document.getElementById("description").style.display="none";
+			}
+		}
+		else{
+			document.getElementById("word").innerHTML=enword;
+			if(enopis != " " && enopis != ""){
+				document.getElementById("description").innerHTML=enopis;
+				document.getElementById("description").style.display="block";
+			}
+			else{
+				document.getElementById("description").style.display="none";
+			}
+		}
+		
+		//PRZYCISK EDYTUJ
+		document.getElementById("eedit").href="edit.php?id="+id;
+	}
+	
+	//WYSWIETLA POPRZEDNIE SLOWKO
+	function ustawlast(){
+		document.getElementById("last").innerHTML=  
+			'<strong>'+plword+'</strong> - <strong>'+enword+'</strong>';
+		//JEZELI ISTNIALA WYMOWA TO JA DODAJE
+		if(enwymowa != " " && enwymowa != "")
+			document.getElementById("last").innerHTML=
+			document.getElementById("last").innerHTML + ' [<em>'+enwymowa+'</em>]';  
+	}
+	
+	//OBLICZA SZEROKOSC PROGRESS BAROW
+	function getProgressBarWidth(count){
+		var wynik = 10;
+		wynik = wynik + count * 20;
+		if (wynik > 100)
+			wynik = 100;
+		return wynik;
+	}
+	
+	//ZWRACA CIAG Z PARAMETRAMI KTORE SLOWKA POBIERAĆ
+	function checkedd() {
+		var opt = "";
+		var radio = document.getElementsByName('gr1');
+		for (var i = 0, length = radio.length; i < length; i++){
+			if (radio[i].checked) {
+				opt += "&gr1=" + radio[i].value;
+				break;
+			}
+		}
+		var radio = document.getElementsByName('gr2');
+		for (var i = 0, length = radio.length; i < length; i++){
+			if (radio[i].checked) {
+				opt += "&gr2=" + radio[i].value;
+				break;
+			}
+		}
+		var radio = document.getElementsByName('gr3');
+		for (var i = 0, length = radio.length; i < length; i++){
+			if (radio[i].checked) {
+				opt += "&gr3=" + radio[i].value;
+				break;
+			}
+		}
+		return opt;
+    }
+	
+	//USUNIECIE SLOWKA PO KLIKNIECIU USUN
+	function usunslowo(){
+		if (confirm('Czy na pewno chcesz usunąć?')) {
+			//POBRANIE NOWEGO PO USUNIECIU
+			var iddel = id;
+			getNewWord(id);
+			//ZAPYTANIE AJAX DO del.php
+			if (window.XMLHttpRequest) {xmlhttp=new XMLHttpRequest();} else { xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");}
+			xmlhttp.onreadystatechange=function() {
+				//JEZELI AJAX ODPOWIEDZIAL
+				if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+					alert("Usunięto !");
+				}
+			}
+			//WYWOLANIE ZAPYTANIA AJAX Z PARAMETRAMI POST
+			xmlhttp.open("POST","del.php",true);
+			xmlhttp.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+			xmlhttp.send("id="+iddel);
+		} else {
+		}
+	}
+	
+	function loadStats()
+	{
+	var xmlhttp;
+	if (window.XMLHttpRequest){xmlhttp=new XMLHttpRequest();}
+	else{xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");}
+	xmlhttp.onreadystatechange=function(){
+		if (xmlhttp.readyState==4 && xmlhttp.status==200){
+			document.getElementById("statss").innerHTML=xmlhttp.responseText;
+		}
+	}
+	xmlhttp.open("GET","stats.php",true);
+	xmlhttp.send();
+	}
+	
+	</script>
+	
+	
+</head>
+<body onload="getNewWord(-1)">
+<!--
+	BLOKI WYSWIETLAJACE INFO O POBRANYCH I WYSLANYCH DANYCH
+	<div id = "sss"></div><br><div id = "sss2"></div>
+-->
+
+<!-- MENU GORNE -->
+<nav>
+	<div id="logo">
+		<ul>
+			<li><a href="index.html"><strong>Haks.pl</strong></a></li>
+		</ul>
+	</div>
+	<div style="width:62%">
+		<ul id="statss">
+			<li>all: <strong>0</strong></li>
+			<li>new: <strong>0</strong></li>
+			<li>know: <strong>0</strong></li>
+			<li>im: <strong>0</strong></li>
+		</ul>
+	</div>
+	<div style="width:25%">
+		<ul>
+			<li><a href="add.php">dodaj</a></li>
+			<li><a href="#" onclick='showsearcher();'>szukaj</a></li>
+			
+		</ul>	
+	</div>
+</nav>
+
+
+<!-- WYSZUKIWARKA -->
+<aside id="searcha">
+	<input type="text" name="nazwa" id="search" value="" placeholder="szukaj..."/>
+	<input type="submit" id="searchEnter" value="Szukaj" />
+</aside>
+
+<!-- TRESC -->
+<article>
+	<!-- DIV DLOWNY W ARTICLE DO ZROBIENIA OBRAMOWANIA -->
+	<div id="artcont">
+		<div id="word">undefined </div>
+		<div id="description">undefined</div>
+		<div id="speaking"><input type="submit" class="wymowa" value="Pokaż wymowę" id="wymowaa" onclick="showSpeaking()"/></div>
+		<div id="translate"><input type="submit" class="tlumaczenie" value="Pokaż tłumaczenie" onclick="showTranslation()"/></div>
+
+		<div id="progressbar"><div id="pbplnaen">pl > en</div></div>
+		<div id="progressbar2"><div id="pbennapl">en > pl</div></div>
+
+		<div id="confirmation1"><input type="submit"  onclick="getNewWord(0)" class="ipbad" value="Źle :-(" /></div>
+		<div id="confirmation2"><input type="submit" onclick="getNewWord(1)" class="inpok" id="goood" value="Dobrze :-)" /></div>
+
+		<div class="last" id="last"><strong>polski</strong> - <strong>angielski</strong> [<em>wymowa</em>]</div>
+		
+		<div id="settings"><a href="edit.php" id="eedit">edytuj</a><span id="spwaga"> waga: 3 </span><a href="#" onclick="usunslowo()">usuń</a></div>
+	</div>
+</article>
+
+<!-- OPCJE NA DOLE -->
+<nav id="option">
+	<div style="width:32%;">
+		<input type="radio" name="gr1" id="gr11" value="1" checked="checked"  onclick="checkedd()"/>Wszystkie<br>
+		<input type="radio" name="gr1" id="gr12" value="2" onclick="checkedd()"/>Ważne <br>
+		<input type="radio" name="gr1" id="gr13" value="3" onclick="checkedd()"/>Nowe
+	</div>
+	<div style="width:32%;">
+		<input type="radio" name="gr2" id="gr21" value="1" checked="checked"  onclick="checkedd()"/>Wszystkie<br>
+		<input type="radio" name="gr2" id="gr22" value="2" onclick="checkedd()"/>Nienauczone<br>
+		<input type="radio" name="gr2" id="gr23" value="3" onclick="checkedd()"/>Wszystkie + Epic
+	</div>
+	<div style="width:32%;">
+		<input type="radio" name="gr3" id="gr31" value="1" checked="checked"  onclick="checkedd()"/>Wszystkie<br>
+		<input type="radio" name="gr3" id="gr32" value="2" onclick="checkedd()"/>Na angielski<br>
+		<input type="radio" name="gr3" id="gr33" value="3" onclick="checkedd()"/>Na polski
+		
+	</div>
+</nav>
+
+
+<footer> Copyright Paweł Czubak ® 2014 </footer>
+</body>
+</html>
